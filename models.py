@@ -2,20 +2,23 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-class Local(db.Model):
-    __tablename__ = 'events'  # table name here
+class Event(db.Model):
+    __tablename__ = 'events'  # Table name in the database
 
-    id_local = db.Column(db.Integer, primary_key=True)  # PRIMARY KEEEY 
-    name = db.Column(db.String(255), nullable=False)
-    city = db.Column(db.String(255), nullable=False)
-    address = db.Column(db.String(255), nullable=False)
-    events = db.Column(db.ARRAY(db.Integer), nullable=True)
+    id_event = db.Column(db.Integer, primary_key=True)  # Primary key
+    name = db.Column(db.String(255), nullable=False)  # Event name
+    description = db.Column(db.Text, nullable=True)  # Event description
+    city = db.Column(db.String(100), nullable=False)  # Event city
+    max_capacity = db.Column(db.Integer, nullable=False)  # Maximum capacity
+    subscribers = db.Column(db.ARRAY(db.Integer), default=[], nullable=False)  # Subscribers array
 
     def to_dict(self):
+        """Convert the event object to a dictionary for JSON serialization."""
         return {
-            'id_local': self.id_local,
+            'id_event': self.id_event,
             'name': self.name,
+            'description': self.description,
             'city': self.city,
-            'address': self.address,
-            'events': self.events,
+            'max_capacity': self.max_capacity,
+            'subscribers': self.subscribers,
         }
