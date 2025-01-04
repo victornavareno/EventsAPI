@@ -1,90 +1,102 @@
 from flask import Flask, jsonify, request
-from models import db, Local
+from models import db, Event
 
 app = Flask(__name__)
 
-# Database  configuration - uso PostgreSQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:12345@localhost:5433/Locales'
+# Database configuration - PostgreSQL
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:12345@localhost:5433/Eventos'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SQLAlchemy configuration
 db.init_app(app)
 
-# RETURN ALL THE LOCALS as json
-@app.route('/locals', methods=['GET'])
-def get_locals():
-    locals = Local.query.all() 
-    locals_list = [local.to_dict() for local in locals]  
-    return jsonify(locals_list)  
+# RETURN ALL EVENTS as JSON
+@app.route('/events', methods=['GET'])
+def get_events():
+    events = Event.query.all()
+    events_list = [event.to_dict() for event in events]
+    return jsonify(events_list)
 
-# RETURN A LOCAL WITH SPECIFIC ID
-@app.route('/locals/<int:id_local>', methods=['GET'])
-def get_local(id_local):
-    local = Local.query.get(id_local)
-    if local:
-        return jsonify(local.to_dict())
-    return jsonify({'error': 'Local not found'}), 404
+# RETURN AN EVENT WITH A SPECIFIC ID
+@app.route('/events/<int:id_event>', methods=['GET'])
+def get_event(id_event):
+    event = Event.query.get(id_event)
+    if event:
+        return jsonify(event.to_dict())
+    return jsonify({'error': 'Event not found'}), 404
 
-# CREATE A NEW LOCAL
-@app.route('/locals', methods=['POST'])
-def create_local():
+# CREATE A NEW EVENT
+@app.route('/events', methods=['POST'])
+def create_event():
     data = request.get_json()  # Parse the incoming JSON data
 
     # Validate that all required fields are provided
-    required_fields = ['name', 'city', 'address']
+    required_fields = ['name', 'description', 'city', 'max_capacity']
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
         return jsonify({'error': f'Missing fields: {", ".join(missing_fields)}'}), 400
 
     name = data['name']
+    description = data['description']
     city = data['city']
-    address = data['address']
-    events = data.get('events', [])  # Use an empty list if events is not provided
+    max_capacity = data['max_capacity']
+    subscribers = data.get('subscribers', [])  # Default to an empty list if not provided
 
-    # Create a new Local object
-    new_local = Local(
+    # Ensure subscribers do not exceed max_capacity
+    if len(subscribers) > max_capacity:
+        return jsonify({'error': 'Subscribers exceed maximum capacity'}), 400
+
+    # Create a new Event object
+    new_event = Event(
         name=name,
+        description=description,
         city=city,
-        address=address,
-        events=events
+        max_capacity=max_capacity,
+        subscribers=subscribers
     )
 
-    db.session.add(new_local)
+    db.session.add(new_event)
     db.session.commit()
 
-    return jsonify(new_local.to_dict()), 201
+    return jsonify(new_event.to_dict()), 201
 
-# UPDATE AN EXISTING LOCAL
-@app.route('/locals/<int:id_local>', methods=['PUT'])
-def update_local(id_local):
-    data = request.get_json()  
-    local = Local.query.get(id_local)
+# UPDATE AN EXISTING EVENT
+@app.route('/events/<int:id_event>', methods=['PUT'])
+def update_event(id_event):
+    data = request.get_json()
+    event = Event.query.get(id_event)
 
-    if not local:
-        return jsonify({'error': 'Local not found'}), 404
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
 
-    # Update fields if provided in the request body 
+    # Update fields if provided in the request body
     if 'name' in data:
-        local.name = data['name']
+        event.name = data['name']
+    if 'description' in data:
+        event.description = data['description']
     if 'city' in data:
-        local.city = data['city']
-    if 'address' in data:
-        local.address = data['address']
-    if 'events' in data:
-        local.events = data['events']
+        event.city = data['city']
+    if 'max_capacity' in data:
+        if len(event.subscribers) > data['max_capacity']:
+            return jsonify({'error': 'Subscribers exceed new maximum capacity'}), 400
+        event.max_capacity = data['max_capacity']
+    if 'subscribers' in data:
+        if len(data['subscribers']) > event.max_capacity:
+            return jsonify({'error': 'Subscribers exceed maximum capacity'}), 400
+        event.subscribers = data['subscribers']
 
     db.session.commit()
-    return jsonify(local.to_dict()), 200
+    return jsonify(event.to_dict()), 200
 
-# DELETE A LOCAL GIVEN ITS ID
-@app.route('/locals/<int:id_local>', methods=['DELETE'])
-def delete_local(id_local):
-    local = Local.query.get(id_local)
-    if local:
-        db.session.delete(local)
+# DELETE AN EVENT GIVEN ITS ID
+@app.route('/events/<int:id_event>', methods=['DELETE'])
+def delete_event(id_event):
+    event = Event.query.get(id_event)
+    if event:
+        db.session.delete(event)
         db.session.commit()
-        return jsonify({'success': f'Local with id {id_local} deleted'}), 200
-    return jsonify({'error': 'Local not found'}), 404
+        return jsonify({'success': f'Event with id {id_event} deleted'}), 200
+    return jsonify({'error': 'Event not found'}), 404
 
 
 if __name__ == '__main__':

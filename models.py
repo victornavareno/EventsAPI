@@ -10,10 +10,9 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=True)  # Event description
     city = db.Column(db.String(100), nullable=False)  # Event city
     max_capacity = db.Column(db.Integer, nullable=False)  # Maximum capacity
-    subscribers = db.Column(db.ARRAY(db.Integer), default=[], nullable=False)  # Subscribers array
+    subscribers = db.Column(db.ARRAY(db.Integer), default=[], nullable=False)  # Subscribers array (Will introduce user IDs here)
 
     def to_dict(self):
-        """Convert the event object to a dictionary for JSON serialization."""
         return {
             'id_event': self.id_event,
             'name': self.name,
